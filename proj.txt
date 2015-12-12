@@ -1,0 +1,76 @@
+Meal Scheduler
+The meals every person eats affect whether they gain/lose weight. Thus the user should first specify through the GUI:
+a) Whether they would like to build or lose weight.
+
+b) How many meals they would have every day (3-5).
+
+
+The meals the users get should ensure the following: (please note that we assume a 5-meals plan)
+a) The total amount of calorie and food type intake abide by the medical calculations provided through the excel sheet.
+Note that 1 gram of carbs = 4 calories, 1 gram of protein = 4 calories, 1 gram of fat = 9 calories.
+
+b) The third meal can be repeated with a maximum of two times every week. (?)
+(The set of all third meals in a week does not contain more than 2 duplicates)
+
+c) The weekly meal plan should never be repeated as it is within the same month.
+
+d) There are items that are preferable/not preferable to be eaten in some specific meals. For example,
+it is not preferable to have chicken for breakfast. Your meal plan should have as little of such meals
+as possible.
+
+e) There are some popular meal combinations. Your plan should try to include such preferable meals
+as much as possible (as long as they fit the requirement calories/constituents).
+
+F = 0.4 * LBM per pound
+P = (1.5 or 1.6) * LBM per pound
+C = (Calories - (9F + 4P))/4
+
+BMR = 370 + 21.6 * LBM (kg)
+
+Tolerance -> Cut(-100cal carbs), Bulk(+- 100 cal carbs)
+Fats +- 5g
+Protein +- 30g
+
+====================================================================================================================================================================================
+
+The workout starts off by 5 sets then 4 sets then 3 sets then 3 sets and then 3 sets.
+
+The number of times every exercise is repeated has a fixed scheme of either 20/20/20/20/20 or 15/12/10/8/6 or 12/10/8/6/4 or 12/12/10/8/8 or 5/5/5/5/5.
+
+For example if the 15/12/10/8/6 strategy was used, then the first exercise in the first set is repeated 15 times and the second exercise is repeated for 12 times, ... etc.
+
+After finishing the 5 exercise set, the exercises of the next 4-set are repeated 12/10/8/6 times correspondingly.
+
+The same is applied for the rest of the sets and strategies
+
+15/12/10/8/6
+15/12/10/8
+15/12/10
+15/12/10
+15/12/10
+
+cut -> cardio
+bulk -> no cardio
+
+exactly 2 5 star per muscle group
+
+hamstrings & quads together
+
+legs & back mutex
+legs & chest mutex
+
+The user should enter the number of times he/she visits a gym.
+
+This is a number between 3 and 5.
+
+The system should produce a schedule for the exercises to be done to train all muscles.
+
+The schedule should span over a month.
+
+It should make sure that different repetition strategies are used within the month.
+
+Through the GUI, users should be able to access the exercise schedule.
+
+For each exercise the user can click on a youtube video showing how it should be done.
+
+(The links are also available through the excel sheet.)
