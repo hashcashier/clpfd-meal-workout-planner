@@ -95,7 +95,7 @@ exercise(chest, ChestExercises) :-
   random_permutation(X, X2),
   prefix(X2, 5, ChestExercises)
   .
-exercise(abs, ChestExercises) :- 
+exercise(abs, AbsExercises) :- 
   X = [
       bent-knee_hip_raise,
       cable_crunch,
@@ -110,9 +110,9 @@ exercise(abs, ChestExercises) :-
       one-arm_high-pulley_cable_side_bends
   ],
   random_permutation(X, X2),
-  prefix(X2, 5, ChestExercises)
+  prefix(X2, 5, AbsExercises)
   .
-exercise(bi, ChestExercises) :- 
+exercise(bi, BiExercises) :- 
   X = [
       alternate_hammer_curl,
       alternate_incline_dumbbell_curl,
@@ -126,9 +126,9 @@ exercise(bi, ChestExercises) :-
       wide-grip_standing_barbell_curl
   ],
   random_permutation(X, X2),
-  prefix(X2, 5, ChestExercises)
+  prefix(X2, 5, BiExercises)
   .
-exercise(tri, ChestExercises) :- 
+exercise(tri, TriExercises) :- 
   X = [
       cable_one_arm_tricep_extension,
       cable_rope_overhead_triceps_extension,
@@ -142,9 +142,9 @@ exercise(tri, ChestExercises) :-
       weighted_bench_dip
   ],
   random_permutation(X, X2),
-  prefix(X2, 5, ChestExercises)
+  prefix(X2, 5, TriExercises)
   .
-exercise(shoulder, ChestExercises) :- 
+exercise(shoulder, ShoulderExercises) :- 
   X = [
       alternating_deltoid_raise,
       barbell_shoulder_press,
@@ -158,9 +158,9 @@ exercise(shoulder, ChestExercises) :-
       smith_machine_overhead_shoulder_press
   ],
   random_permutation(X, X2),
-  prefix(X2, 5, ChestExercises)
+  prefix(X2, 5, ShoulderExercises)
   .
-exercise(back, ChestExercises) :- 
+exercise(back, BackExercises) :- 
   X = [
       barbell_deadlift,
       bent_over_barbell_row,
@@ -173,9 +173,9 @@ exercise(back, ChestExercises) :-
       wide-grip_lat_pulldown
   ],
   random_permutation(X, X2),
-  prefix(X2, 5, ChestExercises)
+  prefix(X2, 5, BackExercises)
   .
-exercise(quads, ChestExercises) :- 
+exercise(quads, QuadsExercises) :- 
   X = [
       barbell_full_squat,
       front_barbell_squat,
@@ -187,9 +187,9 @@ exercise(quads, ChestExercises) :-
       split_squat_with_dumbbells
   ],
   random_permutation(X, X2),
-  prefix(X2, 5, ChestExercises)
+  prefix(X2, 5, QuadsExercises)
   .
-exercise(hams, ChestExercises) :- 
+exercise(hams, HamsExercises) :- 
   X = [
       floor_glute-ham_raise,
       good_morning,
@@ -199,9 +199,9 @@ exercise(hams, ChestExercises) :-
       stiff-legged_dumbbell_deadlift
   ],
   random_permutation(X, X2),
-  prefix(X2, 5, ChestExercises)
+  prefix(X2, 5, HamsExercises)
   .
-exercise(traps, ChestExercises) :- 
+exercise(traps, TrapsExercises) :- 
   X = [
       barbell_shrug_behind_the_back,
       barbell_shrug,
@@ -210,9 +210,9 @@ exercise(traps, ChestExercises) :-
       cable_shrugs
   ],
   random_permutation(X, X2),
-  prefix(X2, 5, ChestExercises)
+  prefix(X2, 5, TrapsExercises)
   .
-exercise(calves, ChestExercises) :- 
+exercise(calves, CalvesExercises) :- 
   X = [
       barbell_seated_calf_raise,
       calf_press_on_the_leg_press_machine,
@@ -221,7 +221,7 @@ exercise(calves, ChestExercises) :-
       standing_dumbbell_calf_raise
   ],
   random_permutation(X, X2),
-  prefix(X2, 5, ChestExercises)
+  prefix(X2, 5, CalvesExercises)
   .
 
 repetition_strategy(Strategy) :-
