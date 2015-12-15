@@ -1,81 +1,191 @@
 :- use_module(library(clpfd)).
 :- use_module(library(lists)).
 
+% Plan/6 for a month
 plan(Goal, MealsPerDay, Weight, FatPerc, ActivityVariable, Schedule):-
 	MealsPerDay > 2,
 	MealsPerDay < 6,
-	LBM #= Weight*(100 - FatPerc) / 100,
-	BMR #= 370 + 21.6 * LBM,
-	TEE #= ActivityVariable * BMR,
+	LBM is Weight*(100 - FatPerc) / 100,
+	BMR is 370 + 21.6 * LBM,
+	TEE is ActivityVariable * BMR,
 	calories(Goal, TEE, CAL),
 	protein(LBM, Protein),
 	fat(LBM, Fat),
 	carbs(CAL, Protein, Fat, Carbs),
-	plan(Protein, Fat, Carbs, MealsPerDay, Schedule, 4, 7, [], []).
-	%uniqueSchedule(Schedule).
+	MinProtein is integer(Protein * 1000),
+	MinFat is integer(Fat * 1000),
+	MinCarbs is integer(Carbs * 1000),
+	MaxProtein is integer(Protein * 1050),
+	MaxFat is integer(Fat * 1050),
+	MaxCarbs is integer(Carbs * 1050),
+	Calories is integer(CAL),
+	plan( % Plan/10 for 4 weeks
+	    MinProtein, MinFat, MinCarbs,
+	    MaxProtein, MaxFat, MaxCarbs,
+	    Calories, MealsPerDay, Schedule,
+	    0, 1, [], []).
 
-plan(Protein, Fat, Carbs, MPD, Schedule, Weeks, 0, WACC, SACC):-
-	Weeks > 0,
-	RemWeeks is Weeks-1,
-	noWeeksRep(WACC, SACC),
-	plan(Protein, Fat, Carbs, MPD, Schedule, RemWeeks, 7, [], [WACC|SACC]).
-
-plan(_, _, _, _, Schedule, 0, 0, _, Schedule).
-plan(Protein, Fat, Carbs, MPD, Schedule, Weeks, Days, WACC, SACC):-
-	Days > 0,
-	Weeks > 0,
-	plan(Protein, Fat, Carbs, MPD, Today),
-	thirdMealRule(Today, WACC),
-	RD is Days - 1,
-	plan(Protein, Fat, Carbs, MPD, Schedule, Weeks, RD, [Today|WACC], SACC).
-
-plan(_, _, _, 0, []).
-plan(P, F, C, M, [Components|T]):-
-	M > 0,
-	M1 is M-1,
-	plan(P, F, C, M1, T),
-	meal(M, Components),
-	total(TP, TF, TC, [Components|T]),
-	TP - P #> P * 0.05,
-	TF - F #> F * 0.05,
-	TC - C #> C * 0.05.
-
-
-total(0, 0, 0, []).
-total(P, F, C, [H|T]):-
-	component(H, P1, F1, C1, _, _, _),
-	total(P2, F2, C2, T),
-	P #= P1 + P2,
-	F #= F1 + F2,
-	C #= C1 + C2.
-
-component(banana,1.1, 0.3, 23, 89, [], []).
-
-caloriesFat(F, C):-
-	C #= 9*F.
-%caloriesCarb(Carb, Cal):-
-%	Cal #= 4*Carb.
-caloriesProt(P, C) :-
-	C #= 4*P.
-fat(LBM, F):-
-	mass(LBM, LB),
-	F #= 0.4 * LB.
+calories(bulk, TEE, CAL):-
+	CAL is TEE * 1.2.
+calories(cut, TEE, CAL):-
+	CAL is TEE * 0.8.
 protein(LBM, P):-
 	mass(LBM, LB),
-	P #= 1.5 * LB.
-
+	P is 1.5 * LB.
+fat(LBM, F):-
+	mass(LBM, LB),
+	F is 0.4 * LB.
 carbs(CAL, P, F, C):-
 	caloriesFat(F, FC),
 	caloriesProt(P, PC),
-	C #= (CAL - FC - PC) / 4.
+	C is (CAL - FC - PC) / 4.
+
+caloriesFat(F, C):-
+	C is 9*F.
+%caloriesCarb(Carb, Cal):-
+%	Cal is 4*Carb.
+caloriesProt(P, C) :-
+	C is 4*P.
 
 mass(KG, LB):-
-	LB #= 0.453592 * KG.
+	LB is 0.453592 * KG.
 
-calories(bulk, TEE, CAL):-
-	CAL #= TEE * 1.2.
-calories(cut, TEE, CAL):-
-	CAL #= TEE * 0.8.
+% Plan/10 for a new week
+plan(
+    MinProtein, MinFat, MinCarbs,
+    MaxProtein, MaxFat, MaxCarbs,
+    CAL, MPD, Schedule,
+    Weeks, 0, WACC, SACC):-
+	Weeks > 0,
+	RemWeeks is Weeks-1,
+	%%%%%%%%%%%%%%%%%%%noWeeksRep(WACC, SACC),
+	plan( % Plan/10 for this week
+	    MinProtein, MinFat, MinCarbs,
+	    MaxProtein, MaxFat, MaxCarbs,
+	    CAL, MPD, Schedule,
+	    RemWeeks, 7, [], [WACC|SACC]).
+
+% Plan/10 complete. Dump Accumulators
+plan(
+    _, _, _,
+    _, _, _,
+    _, _, Schedule,
+    0, 0, _, Schedule).
+
+% Plan/10 for this week
+plan(
+    MinProtein, MinFat, MinCarbs,
+    MaxProtein, MaxFat, MaxCarbs,
+    CAL, MPD, Schedule,
+    Weeks, Days, WACC, SACC):-
+	Days > 0,
+	% Plan for today
+	today(
+	    0, 0, 0, 0,
+	    MinProtein, MinFat, MinCarbs,
+	    MaxProtein, MaxFat, MaxCarbs,
+	    CAL, MPD, Today),
+	%%%%%%%%%%%%%%%%%%%%%thirdMealRule(Today, WACC),
+	RD is Days - 1,
+	% Continue Week
+	plan( %Plan/10
+	    MinProtein, MinFat, MinCarbs,
+	    MaxProtein, MaxFat, MaxCarbs,
+	    CAL, MPD, Schedule,
+	    Weeks, RD, [Today|WACC], SACC).
+
+% Today/10 plan complete. Check if it satisfies needs.
+today(
+    Protein, Fat, Carbs, Cals,
+    MinProtein, MinFat, MinCarbs,
+    MaxProtein, MaxFat, MaxCarbs,
+    CAL, 0, []):-
+	Protein >= MinProtein,
+	Protein =< MaxProtein,
+	Fat >= MinFat,
+	Fat =< MaxFat,
+	Carbs >= MinCarbs,
+	Carbs =< MaxCarbs,
+	Cals =< integer(CAL * 1.05).
+
+% Today/10 plan
+today(
+    Protein, Fat, Carbs, Cals,
+    MinProtein, MinFat, MinCarbs,
+    MaxProtein, MaxFat, MaxCarbs,
+    CAL, Meals, [Components|T]):-
+	Meals > 0,
+	RP is MaxProtein - Protein,
+	RF is MaxFat - Fat,
+	RC is MaxCarbs - Carbs,
+	RJ is CAL - Cals,
+	meal(TP, TF, TC, TJ, RP, RF, RC, RJ, Meals, Components),
+	NP is Protein + TP,
+	NF is Fat + TF,
+	NC is Carbs + TC,
+	NJ is Cals + TJ,
+	NM is Meals-1,
+	today(
+	    NP, NF, NC, NJ,
+	    MinProtein, MinFat, MinCarbs,
+	    MaxProtein, MaxFat, MaxCarbs,
+	    CAL, NM, T).
+
+% Meal/10 for right now
+meal(P, F, C, J, MP, MF, MC, MJ, M, Components):-
+	component(E1, P1, C1, F1, J1, _, H1, S1, B1),
+	%\+member(M, H1),
+	component(E2, P2, C2, F2, J2, _, H2, S2, B2),
+	%\+member(M, H2),
+	E2 \= E1,
+	component(E3, P3, C3, F3, J3, _, H3, S3, B3),
+	%\+member(M, H3),
+	E3 \= E1, E3 \= E2,
+	component(E4, P4, C4, F4, J4, _, H4, S4, B4),
+	%\+member(M, H4),
+	E4 \= E1, E4 \= E2, E4 \= E3,
+	M1 in S1..B1, M2 in S2..B2, M3 in S3..B3, M4 in S4..B4,
+	P #= M1*P1 + M2*P2 + M3*P3 + M4*P4,
+	C #= M1*C1 + M2*C2 + M3*C3 + M4*C4,
+	F #= M1*F1 + M2*F2 + M3*F3 + M4*F4,
+	J #= M1*J1 + M2*J2 + M3*J3 + M4*J4,
+	P #=< MP, F #=< MF, C #=< MC,%%%%%%%%% J #=< MJ,
+	label([M1, M2, M3, M4]),
+	Components = [eat(E1, M1), eat(E2, M2), eat(E3, M3), eat(E4, M4)].
+
+% Component(Name, Protein, Carbs, Fats, Calories, Pref in, Hate in, Min
+% units, max units)
+
+component(empty,			0,	0,	0,	0,	[], [], 1, 1).
+component(banana,			1100,	300,	23000,	89,	[], [], 1, 10).
+component(broccoli,			2800,	7000,	400,	34,	[], [], 1, 10).
+component(carrots,			900,	10000,	200,	41,	[], [], 1, 10).
+component(cheddar_cheese,		25000,	1300,	33000,	402,	[], [], 1, 10).
+component(chicken_breast_uncooked,	21200,	0,	2500,	114,	[], [], 1, 10).
+component(egg_whites_uncooked,		11000,	700,	200,	52,	[], [], 1, 10).
+component(fish,				19000,	0,	6000,	134,	[], [], 1, 10).
+component(gouda_cheese,			25000,	2200,	27000,	356,	[], [], 1, 10).
+component(honey,			300,	82000,	0,	304,	[], [], 1, 10).
+component(lean_beef_uncooked,		20000,	0,	6000,	137,	[], [], 1, 10).
+component(milk_full_fat,		3300,	4600,	3700,	64,	[], [], 1, 10).
+component(multi_grain_bread,		13000,	43000,	4200,	265,	[], [], 1, 10).
+component(olive_oil,			0,	0,	100000,	884,	[], [], 1, 10).
+component(pasta_uncooked,		13000,	75000,	1500,	371,	[], [], 1, 10).
+component(peanut_butter,		25000,	20000,	50000,	588,	[], [], 1, 10).
+component(pear,				400,	15000,	100,	57,	[], [], 1, 10).
+component(potato_uncooked,		2000,	17000,	100,	77,	[], [], 1, 10).
+component(salmon_uncooked,		20000,	0,	13000,	208,	[], [], 1, 10).
+component(shrimp_uncooked,		20000,	0,	500,	85,	[], [], 1, 10).
+component(skimmed_milk,			3400,	5000,	100,	34,	[], [], 1, 10).
+component(spinach,			2900,	3600,	400,	23,	[], [], 1, 10).
+component(sweet_potato_uncooked,	1600,	20000,	0,	86,	[], [], 1, 10).
+component(swiss_cheese,			27000,	5000,	28000,	380,	[], [], 1, 10).
+component(tomato,			900,	3900,	200,	18,	[], [], 1, 10).
+component(tuna_brine,			26000,	0,	1000,	116,	[], [], 1, 10).
+component(whey_protein,			80000,	10000,	3300,	400,	[], [], 1, 10).
+component(white_rice_uncoooked,		7000,	82000,	600,	370,	[], [], 1, 10).
+component(whole_egg_uncooked,		13000,	700,	10000,	143,	[], [], 1, 10).
+
 
 noWeeksRep(A, B):-
 	\+member(A, B).
@@ -94,7 +204,8 @@ thirdMealRule(M, [H|T], N):-
 
 sameMeal(meal(X, A), meal(X, B)):-
 	true.
-
+%Write Meal Comparator
+%Change GRAMS to Milligrams and use CLPFD
 
 
 
