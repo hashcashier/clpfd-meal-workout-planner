@@ -46,6 +46,7 @@ plan(Protein, Fat, Carbs, Calories, MPD, Schedule, Weeks, Days, WACC, SACC):-
 	plan(Protein, Fat, Carbs, Calories, MPD, Schedule, Weeks, RD, [Today|WACC], SACC).
 
 today(P, F, C, L, M, Sched):-
+	%%%%% Calculate Nutrient Bounds
 	PL is integer(P * 950),
 	PH is integer(P * 1050),
 	FL is integer(F * 950),
@@ -54,22 +55,33 @@ today(P, F, C, L, M, Sched):-
 	CH is integer(C * 1050),
 	LL is integer(L * 0.95),
 	LH is integer(L * 1.05),
-	findall([Component, Ps, Fs, Cs, Ls, Min, Max], component(Component, Ps, Cs, Fs, Ls, _, _, Min, Max, _), Components),
+
+	%%%%% Compile components table
+	findall(
+		[Component, Ps, Fs, Cs, Ls, UPSLower, UPSUpper, UPDLower, UPDUpper, SPDLower, SPDUpper],
+		component(Component, Ps, Cs, Fs, Ls, _, _, UPSLower, UPSUpper, UPDLower, UPDUpper, SPDLower, SPDUpper),
+		Components),
 	transpose(Components, ComponentsTranspose),
-	ComponentsTranspose = [ComponentNames, ComponentProteins, ComponentFats, ComponentCarbs, ComponentCalories, ComponentLowers, ComponentUppers],
+	ComponentsTranspose = [
+		ComponentNames,
+		ComponentProteins, ComponentFats, ComponentCarbs, ComponentCalories,
+		ComponentUPSLowers, ComponentUPSUppers, ComponentUPDLowers, ComponentUPDUppers, 
+		ComponentSPDLowers, ComponentSPDUppers],
 	Nutrients = [ComponentProteins, ComponentFats, ComponentCarbs, ComponentCalories],
 	length(ComponentNames, N),
 
 	%%%%% Component X Meal Flow Mat
 	length(Matrix, N),
 	maplist(length2(M), Matrix),
-	maplist(dom_limits, Matrix, ComponentLowers, ComponentUppers),
+	maplist(dom_limits, Matrix, ComponentUPSLowers, ComponentUPSUppers),
 	transpose(Matrix, MatrixTranspose),
+	daily_bounds(Matrix, ComponentUPDLowers, ComponentUPDUppers),
 
 	%%%%% Component X Meal Adj Mat
-	%maplist(maplist(boolean_reduction), Matrix, BooleanMatrix),
-	%transpose(BooleanMatrix, BooleanMatrixTranspose),
-	no_empty_meals(MatrixTranspose),
+	maplist(maplist(boolean_reduction), Matrix, BooleanMatrix),
+	transpose(BooleanMatrix, BooleanMatrixTranspose),
+	meal_bounds(BooleanMatrixTranspose),
+	serving_bounds(BooleanMatrix, ComponentSPDLowers, ComponentSPDUppers),
 
 	%%%%% Nutrient (PFCL) X Meal Aggregate
 	length(Aggregate, 4),
@@ -88,10 +100,30 @@ today(P, F, C, L, M, Sched):-
 	%%%%% Label factors
 	flatten(Matrix, FlatMatrix),
 	label(FlatMatrix),
-	extract(ComponentNames, MatrixTranspose, Sched).
+	extract(ComponentNames, MatrixTranspose, Sched),
+	display(1, Sched).
 
-no_empty_meals(BooleanMatrix):-
-	maplist(sum3(#>, 0), BooleanMatrix).
+daily_bounds(Matrix, UPDL, UPDU):- summation_bounds(Matrix, UPDL, UPDU).
+
+serving_bounds(BooleanMatrix, SPDL, SPDU):- summation_bounds(BooleanMatrix, SPDL, SPDU).
+
+display(_, []).
+display(N, [H|T]):-
+	write("Meal "), write(N), writeln(": "),
+	display(H),
+	N1 is N+1,
+	display(N1, T).
+display([]).
+display([H|T]):-
+	H = eat(Quantity, Name),
+	write("\t"), write(Name), write(": "), write(Quantity), writeln(" Serving(s)"),
+	display(T).
+
+meal_bounds(BooleanMatrix):-
+	% No Empty Meals
+	maplist(sum3(#>, 0), BooleanMatrix),
+	% No Super Salad Meals
+	maplist(sum3(#<, 6), BooleanMatrix).
 
 extract(Components, Matrix, Schedule):-
 	foldr(extract(Components), Matrix, [], Schedule).
@@ -114,36 +146,35 @@ boolean_reduction(Integer, Boolean):-
 dom_limits(Row, Lower, Upper):-
 	Row ins 0 \/ Lower..Upper.
 
-% Component(UNIQUE Name, 			Protein, Carbs, Fats, 	Cals, 	Pref in, 	Hate in, 	Min UPS, 	Max UPS, 	Min UPD,	Max UPD,	Min Appearances,	Max Appearances)
-%component(empty,					0,		0,		0,		0,		[],			[],			1, 			1, 			25).
-component(banana,					1100,	300,	23000,	89,		[],			[],			1, 			2, 			2).
-component(broccoli,					2800,	7000,	400,	34,		[],			[],			1, 			2, 			2).
-component(carrots,					900,	10000,	200,	41,		[],			[],			1, 			2, 			2).
-component(cheddar_cheese,			25000,	1300,	33000,	402,	[1,2,5],	[],			1, 			2, 			2).
-component(chicken_breast_uncooked,	21200,	0,		2500,	114,	[3],		[1],		1, 			4, 			2).
-component(egg_whites_uncooked,		11000,	700,	200,	52,		[],			[],			1, 			3, 			2).
-component(fish,						19000,	0,		6000,	134,	[3],		[1],		1, 			4, 			2).
-component(gouda_cheese,				25000,	2200,	27000,	356,	[1,2,5],	[],			1, 			3, 			2).
-component(honey,					300,	82000,	0,		304,	[],			[],			1, 			1, 			2).
-component(lean_beef_uncooked,		20000,	0,		6000,	137,	[3],		[1],		1, 			4, 			2).
-component(milk_full_fat,			3300,	4600,	3700,	64,		[],			[],			1, 			2, 			2).
-component(multi_grain_bread,		13000,	43000,	4200,	265,	[],			[],			1, 			2, 			2).
-component(olive_oil,				0,		0,		100000,	884,	[],			[],			1, 			1, 			2).
-component(pasta_uncooked,			13000,	75000,	1500,	371,	[3],		[1],		1, 			2, 			2).
-component(peanut_butter,			25000,	20000,	50000,	588,	[],			[],			1, 			2, 			2).
-component(pear,						400,	15000,	100,	57,		[],			[],			1, 			2, 			2).
-component(potato_uncooked,			2000,	17000,	100,	77,		[],			[],			1, 			2, 			2).
-component(salmon_uncooked,			20000,	0,		13000,	208,	[3],		[1],		1, 			2, 			2).
-component(shrimp_uncooked,			20000,	0,		500,	85,		[3],		[1],		1, 			2, 			2).
-component(skimmed_milk,				3400,	5000,	100,	34,		[],			[],			1, 			2, 			2).
-component(spinach,					2900,	3600,	400,	23,		[],			[1],		1, 			3, 			2).
-component(sweet_potato_uncooked,	1600,	20000,	0,		86,		[],			[],			1, 			2, 			2).
-component(swiss_cheese,				27000,	5000,	28000,	380,	[1,2,5],	[],			1, 			2, 			2).
-component(tomato,					900,	3900,	200,	18,		[],			[],			1, 			4, 			4).
-component(tuna_brine,				26000,	0,		1000,	116,	[],			[1],		1, 			3, 			2).
-component(whey_protein,				80000,	10000,	3300,	400,	[],			[],			1, 			1, 			2).
-component(white_rice_uncoooked,		7000,	82000,	600,	370,	[],			[],			1, 			1, 			2).
-component(whole_egg_uncooked,		13000,	700,	10000,	143,	[1],		[],			1, 			3, 			3).
+% Component(UNIQUE Name, 			Protein, Carbs, Fats, 	Cals, 	Pref in, 	Hate in, 	Min U/S, 	Max U/S, 	Min U/D,	Max U/D,	Min S/D,	Max S/D)
+component(banana,					1100,	300,	23000,	89,		[],			[],			1, 			2, 			0,			2, 			0,			1).
+component(broccoli,					2800,	7000,	400,	34,		[],			[],			1, 			2, 			0,			2, 			0,			1).
+component(carrots,					900,	10000,	200,	41,		[],			[],			1, 			2, 			0,			2, 			0,			1).
+component(cheddar_cheese,			25000,	1300,	33000,	402,	[1,2,5],	[],			1, 			2, 			0,			2, 			0,			1).
+component(chicken_breast_uncooked,	21200,	0,		2500,	114,	[3],		[1],		1, 			4, 			0,			4, 			0,			1).
+component(egg_whites_uncooked,		11000,	700,	200,	52,		[],			[],			1, 			3, 			0,			3, 			0,			1).
+component(fish,						19000,	0,		6000,	134,	[3],		[1],		1, 			4, 			0,			4, 			0,			1).
+component(gouda_cheese,				25000,	2200,	27000,	356,	[1,2,5],	[],			1, 			3, 			0,			3, 			0,			1).
+component(honey,					300,	82000,	0,		304,	[],			[],			1, 			1, 			0,			1, 			0,			1).
+component(lean_beef_uncooked,		20000,	0,		6000,	137,	[3],		[1],		1, 			4, 			0,			4, 			0,			1).
+component(milk_full_fat,			3300,	4600,	3700,	64,		[],			[],			1, 			2, 			0,			2, 			0,			1).
+component(multi_grain_bread,		13000,	43000,	4200,	265,	[],			[],			1, 			2, 			0,			2, 			0,			1).
+component(olive_oil,				0,		0,		100000,	884,	[],			[],			1, 			1, 			0,			1, 			0,			1).
+component(pasta_uncooked,			13000,	75000,	1500,	371,	[3],		[1],		1, 			2, 			0,			2, 			0,			1).
+component(peanut_butter,			25000,	20000,	50000,	588,	[],			[],			1, 			2, 			0,			2, 			0,			1).
+component(pear,						400,	15000,	100,	57,		[],			[],			1, 			2, 			0,			2, 			0,			1).
+component(potato_uncooked,			2000,	17000,	100,	77,		[],			[],			1, 			2, 			0,			2, 			0,			1).
+component(salmon_uncooked,			20000,	0,		13000,	208,	[3],		[1],		1, 			2, 			0,			2, 			0,			1).
+component(shrimp_uncooked,			20000,	0,		500,	85,		[3],		[1],		1, 			2, 			0,			2, 			0,			1).
+component(skimmed_milk,				3400,	5000,	100,	34,		[],			[],			1, 			2, 			0,			2, 			0,			1).
+component(spinach,					2900,	3600,	400,	23,		[],			[1],		1, 			3, 			0,			3, 			0,			1).
+component(sweet_potato_uncooked,	1600,	20000,	0,		86,		[],			[],			1, 			2, 			0,			2, 			0,			1).
+component(swiss_cheese,				27000,	5000,	28000,	380,	[1,2,5],	[],			1, 			2, 			0,			2, 			0,			1).
+component(tomato,					900,	3900,	200,	18,		[],			[],			1, 			4, 			0,			4, 			0,			1).
+component(tuna_brine,				26000,	0,		1000,	116,	[],			[1],		1, 			3, 			0,			3, 			0,			1).
+component(whey_protein,				80000,	10000,	3300,	400,	[],			[],			1, 			1, 			0,			1, 			0,			1).
+component(white_rice_uncoooked,		7000,	82000,	600,	370,	[],			[],			1, 			1, 			0,			1, 			0,			1).
+component(whole_egg_uncooked,		13000,	700,	10000,	143,	[1],		[],			1, 			3, 			0,			3, 			0,			1).
 
 % Unit Conversion Predicates
 calories(bulk, TEE, CAL):- CAL is TEE * 1.2.
@@ -182,3 +213,7 @@ product(A, B, P):-
 	foldr(product, A, B, [], P).
 product(A, B, T, [H|T]):-
 	H #= A*B.
+
+summation_bounds(Summations, Lower, Upper):-
+	maplist(sum2(#>=), Summations, Lower),
+	maplist(sum2(#=<), Summations, Upper).
