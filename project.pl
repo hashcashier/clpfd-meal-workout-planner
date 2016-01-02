@@ -167,7 +167,7 @@ meal(P, F, C, J, MinP, MinF, MinC, MaxP, MaxF, MaxC, MaxJ, M, Components):-
 	Components = [eat(E1, M1), eat(E2, M2), eat(E3, M3), eat(E4, M4)].
 
 % Component(Name, 					Protein, Carbs, Fats, 	Cals, 	Pref in, 	Hate in, 	Min units, 	Max units, Limit)
-component(empty,					0,		0,		0,		0,		[],			[],			1, 			1, 			2).
+component(empty,					0,		0,		0,		0,		[],			[],			1, 			1, 			25).
 component(banana,					1100,	300,	23000,	89,		[],			[],			1, 			2, 			2).
 component(broccoli,					2800,	7000,	400,	34,		[],			[],			1, 			2, 			2).
 component(carrots,					900,	10000,	200,	41,		[],			[],			1, 			2, 			2).
