@@ -72,38 +72,72 @@ today(P, F, C, L, M, Sched):-
 	Nutrients = [ComponentProteins, ComponentFats, ComponentCarbs, ComponentCalories],
 	length(ComponentNames, N),
 
-	%%%%% Component X Meal Flow Mat
-	length(Matrix, N),
-	maplist(length2(M), Matrix),
-	maplist(dom_limits, Matrix, ComponentUPSLowers, ComponentUPSUppers),
-	transpose(Matrix, MatrixTranspose),
-	daily_bounds(Matrix, ComponentUPDLowers, ComponentUPDUppers),
-	maplist(hated_timings, Matrix, ComponentHatedIns),
-
 	%%%%% Component X Meal Adj Mat
-	maplist(maplist(boolean_reduction), Matrix, BooleanMatrix),
+	length(BooleanMatrix, N),
+	maplist(length2(M), BooleanMatrix),
+	maplist(boolean_dom_limits, BooleanMatrix),
 	transpose(BooleanMatrix, BooleanMatrixTranspose),
 	meal_bounds(BooleanMatrixTranspose),
 	serving_bounds(BooleanMatrix, ComponentSPDLowers, ComponentSPDUppers),
+	maplist(hated_timings, BooleanMatrix, ComponentHatedIns),
 
 	%%%%% Component X Meal Preference Matrix
 	length(PreferenceMatrix, N),
 	maplist(length2(M), PreferenceMatrix),
 	maplist(preferences, PreferenceMatrix, ComponentLikedIns),
+
+	%%%%% Component X Meal Preference Value Matrix
 	length(PrefValueMatrix, N),
 	maplist(length2(M), PrefValueMatrix),
 	maplist(product, PreferenceMatrix, BooleanMatrix, PrefValueMatrix),
-	length(PrefScoreMatrix, N),
-	maplist(sum2(#=), PrefValueMatrix, PrefScoreMatrix),
+	transpose(PrefValueMatrix, PrefValueMatrixTranspose),
+
+	%%%%% Meal Preference Score Matrix
+	length(PrefScoreMatrix, M),
+	maplist(sum2(#=), PrefValueMatrixTranspose, PrefScoreMatrix),
 	sum(PrefScoreMatrix, #=, PreferenceScore),
 
-	%%%%% Nutrient (PFCL) X Meal Aggregate
+	%%%%% Nutrient (PFCL) X Meal Boolean Aggregate
+	length(BooleanAggregate, 4),
+	maplist(length2(M), BooleanAggregate),
+	transpose(BooleanAggregate, BooleanAggregateTranspose),
+	maplist(bind_aggregates(Nutrients), BooleanAggregateTranspose, BooleanMatrixTranspose),
+
+	%%%%% Nutrient Sums Upper Bounds
+	BooleanTotal = [BPT, BFT, BCT, BLT],
+	maplist(sum2(#=), BooleanAggregate, BooleanTotal),
+	BPT #=< PH,
+	BFT #=< FH,
+	BCT #=< CH,
+	BLT #=< LH,
+
+	%%%%% Label boolean factors
+	flatten(BooleanMatrix, FlatBooleanMatrix),
+	labeling([max(PreferenceScore)], FlatBooleanMatrix),
+	%extract(ComponentNames, BooleanMatrixTranspose, Sched),
+	%write("Meal Score: "), writeln(PreferenceScore),
+	%display(1, Sched),
+
+	%%%%% Component X Meal Flow Mat
+	length(FlowMatrix, N),
+	maplist(length2(M), FlowMatrix),
+	maplist(dom_limits, FlowMatrix, ComponentUPSLowers, ComponentUPSUppers),
+	%transpose(FlowMatrix, FlowMatrixTranspose),
+	daily_bounds(FlowMatrix, ComponentUPDLowers, ComponentUPDUppers),
+
+	%%%%% Component X Meal Serving Mat
+	length(Matrix, N),
+	maplist(length2(M), Matrix),
+	maplist(product, FlowMatrix, BooleanMatrix, Matrix),
+	transpose(Matrix, MatrixTranspose),
+
+	%%%%% Nutrient (PFCL) X Meal Boolean Aggregate
 	length(Aggregate, 4),
 	maplist(length2(M), Aggregate),
 	transpose(Aggregate, AggregateTranspose),
 	maplist(bind_aggregates(Nutrients), AggregateTranspose, MatrixTranspose),
 
-	%%%%% Nutrient Sums
+	%%%%% Nutrient Sums Bounds
 	Total = [PT, FT, CT, LT],
 	maplist(sum2(#=), Aggregate, Total),
 	PL #=< PT, PT #=< PH,
@@ -113,8 +147,7 @@ today(P, F, C, L, M, Sched):-
 
 	%%%%% Label factors
 	flatten(Matrix, FlatMatrix),
-	%label(FlatMatrix),
-	labeling([max(PreferenceScore)], FlatMatrix),
+	label(FlatMatrix),
 	extract(ComponentNames, MatrixTranspose, Sched),
 	write("Meal Score: "), writeln(PreferenceScore),
 	display(1, Sched).
@@ -179,6 +212,7 @@ bind_aggregate(M, N, Aggregate):-
 	sum(P, #=, Aggregate).
 
 dom_limits(Row, Lower, Upper):- Row ins 0 \/ Lower..Upper.
+boolean_dom_limits(Row):- Row ins 0 \/ 1.
 
 % Component(UNIQUE Name, 			Protein, Carbs, Fats, 	Cals, 	Pref in, 	Hate in, 	Min U/S, 	Max U/S, 	Min U/D,	Max U/D,	Min S/D,	Max S/D)
 component(banana,					1100,	300,	23000,	89,		[],			[],			1, 			2, 			0,			2, 			0,			1).
