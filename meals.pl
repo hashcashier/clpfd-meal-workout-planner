@@ -1,6 +1,7 @@
 :- use_module(library(clpfd)).
 :- use_module(library(lists)).
 :- use_module(library(apply)).
+:- consult(nutrition_data).
 
 % Plan/6 for a month
 plan(Goal, MealsPerDay, Weight, FatPerc, ActivityVariable, Schedule):-
@@ -58,14 +59,13 @@ today(P, F, C, L, M, Sched):-
 
 	%%%%% Compile components table
 	findall(
-		[Component, Ps, Fs, Cs, Ls, Likes, Hates, UPSLower, UPSUpper, UPDLower, UPDUpper, SPDLower, SPDUpper],
-		component(Component, Ps, Cs, Fs, Ls, Likes, Hates, UPSLower, UPSUpper, UPDLower, UPDUpper, SPDLower, SPDUpper),
+		[Component, Ps, Fs, Cs, Ls, UPSLower, UPSUpper, UPDLower, UPDUpper, SPDLower, SPDUpper],
+		component(Component, Ps, Cs, Fs, Ls, UPSLower, UPSUpper, UPDLower, UPDUpper, SPDLower, SPDUpper),
 		Components),
 	transpose(Components, ComponentsTranspose),
 	ComponentsTranspose = [
 		ComponentNames,
 		ComponentProteins, ComponentFats, ComponentCarbs, ComponentCalories,
-		ComponentLikedIns, ComponentHatedIns,
 		ComponentUPSLowers, ComponentUPSUppers,
 		ComponentUPDLowers, ComponentUPDUppers, 
 		ComponentSPDLowers, ComponentSPDUppers],
@@ -79,23 +79,27 @@ today(P, F, C, L, M, Sched):-
 	transpose(BooleanMatrix, BooleanMatrixTranspose),
 	meal_bounds(BooleanMatrixTranspose),
 	serving_bounds(BooleanMatrix, ComponentSPDLowers, ComponentSPDUppers),
-	maplist(hated_timings, BooleanMatrix, ComponentHatedIns),
 
-	%%%%% Component X Meal Preference Matrix
-	length(PreferenceMatrix, N),
-	maplist(length2(M), PreferenceMatrix),
-	maplist(preferences, PreferenceMatrix, ComponentLikedIns),
+	%%%%% Combination Preferences
+	findall([Combination, Likes, Hates], combination(Combination, Likes, Hates, M), Combinations),
 
-	%%%%% Component X Meal Preference Value Matrix
-	length(PrefValueMatrix, N),
-	maplist(length2(M), PrefValueMatrix),
-	maplist(product, PreferenceMatrix, BooleanMatrix, PrefValueMatrix),
-	transpose(PrefValueMatrix, PrefValueMatrixTranspose),
+	same_length(Combinations, CombinationMatrix),
+	maplist(length2(M), CombinationMatrix),
+	maplist(combine_mat(BooleanMatrix, ComponentNames), Combinations, CombinationMatrix),
+	transpose(CombinationMatrix, CombinationMatrixTranspose),
 
-	%%%%% Meal Preference Score Matrix
-	length(PrefScoreMatrix, M),
-	maplist(sum2(#=), PrefValueMatrixTranspose, PrefScoreMatrix),
-	sum(PrefScoreMatrix, #=, PreferenceScore),
+	same_length(Combinations, CombinationFactorMatrix),
+	maplist(length2(M), CombinationFactorMatrix),
+	maplist(combination_factors, Combinations, CombinationFactorMatrix),
+	transpose(CombinationFactorMatrix, CombinationFactorMatrixTranspose),
+
+	maplist(maplist(no_hated_meals), CombinationFactorMatrix, CombinationMatrix),
+
+	maplist(product, CombinationFactorMatrixTranspose, CombinationMatrixTranspose, CombinationValueMatrixTranspose),
+
+	length(CombinationScoreMatrix, M),
+	maplist(sum2(#=), CombinationValueMatrixTranspose, CombinationScoreMatrix),
+	sum(CombinationScoreMatrix, #=, MealScore),
 
 	%%%%% Nutrient (PFCL) X Meal Boolean Aggregate
 	length(BooleanAggregate, 4),
@@ -113,9 +117,11 @@ today(P, F, C, L, M, Sched):-
 
 	%%%%% Label boolean factors
 	flatten(BooleanMatrix, FlatBooleanMatrix),
-	labeling([max(PreferenceScore)], FlatBooleanMatrix),
+	labeling([max(MealScore)], FlatBooleanMatrix),
+	%label(FlatBooleanMatrix),
+
 	%extract(ComponentNames, BooleanMatrixTranspose, Sched),
-	%write("Meal Score: "), writeln(PreferenceScore),
+	%write("Meal Score: "), writeln(MealScore),
 	%display(1, Sched),
 
 	%%%%% Component X Meal Flow Mat
@@ -123,6 +129,7 @@ today(P, F, C, L, M, Sched):-
 	maplist(length2(M), FlowMatrix),
 	maplist(dom_limits, FlowMatrix, ComponentUPSLowers, ComponentUPSUppers),
 	%transpose(FlowMatrix, FlowMatrixTranspose),
+	no_zero_factors(BooleanMatrix, FlowMatrix),
 	daily_bounds(FlowMatrix, ComponentUPDLowers, ComponentUPDUppers),
 
 	%%%%% Component X Meal Serving Mat
@@ -147,10 +154,49 @@ today(P, F, C, L, M, Sched):-
 
 	%%%%% Label factors
 	flatten(Matrix, FlatMatrix),
-	label(FlatMatrix),
+	once(label(FlatMatrix)),
 	extract(ComponentNames, MatrixTranspose, Sched),
-	write("Meal Score: "), writeln(PreferenceScore),
+	write("Meal Score: "), writeln(MealScore),
 	display(1, Sched).
+
+no_hated_meals(Factor, ANDResult):-
+	(Factor < 0 -> ANDResult #= 0) ; Factor >= 0.
+
+combination_factors([Components, LikedIn, HatedIn], Row):-
+	length(Components, N),
+	foldl(combination_factors(LikedIn, HatedIn, N), Row, 1, _).
+combination_factors(LikedIn, HatedIn, Value, Variable, N, N1):-
+	N1 is N+1,
+	(
+		(member(N, LikedIn) -> Variable #= Value) ; 
+		(member(N, HatedIn) -> Variable #= -Value) ; 
+		(\+member(N, LikedIn), \+member(N, HatedIn), Variable #= 0)).
+
+combine_mat(BooleanMatrix, ComponentNames, Combination, ANDedComponents):-
+	Combination = [Components, _, _],
+	extract_submat(BooleanMatrix, ComponentNames, Components, BooleanSubMatrix),
+	transpose(BooleanSubMatrix, BooleanSubMatrixTranspose),
+	maplist(running_product(1), BooleanSubMatrixTranspose, ANDedComponents).
+
+extract_submat(Matrix, Components, List, SubMatrix):-
+	maplist(extract_row(Matrix, Components), List, SubMatrix).
+extract_row(Matrix, Components, Component, Row):-
+	nth1(I, Components, Component),
+	nth1(I, Matrix, Row).
+
+running_product(ACC, [], V):-
+	V #= ACC.
+running_product(ACC, [H|T], V):-
+	running_product(H*ACC, T, V).
+
+amongst(L, [C|_]):-
+	member(C, L).
+
+no_zero_factors(BooleanMatrix, FlowMatrix):-
+	maplist(maplist(boolean_sync), BooleanMatrix, FlowMatrix).
+boolean_sync(A, B):-
+	(A > 0 -> B #> 0);
+	(A = 0 -> B #= 0).
 
 preferences(Matrix, Meals):-
 	foldl(preferences(Meals), Matrix, 1, _).
@@ -184,7 +230,7 @@ meal_bounds(BooleanMatrix):-
 	% No Empty Meals
 	maplist(sum3(#>, 0), BooleanMatrix),
 	% No Super Salad Meals
-	maplist(sum3(#<, 6), BooleanMatrix),
+	maplist(sum3(#<, 5), BooleanMatrix),
 	length(BooleanMatrix, N),
 	(
 		(N = 3, threeMealRules(BooleanMatrix));
@@ -211,38 +257,9 @@ bind_aggregate(M, N, Aggregate):-
 	product(M, N, P),
 	sum(P, #=, Aggregate).
 
-dom_limits(Row, Lower, Upper):- Row ins 0 \/ Lower..Upper.
+dom_limits(Row, Lower, Upper):-
+	Row ins 0 \/ Lower..Upper.
 boolean_dom_limits(Row):- Row ins 0 \/ 1.
-
-% Component(UNIQUE Name, 			Protein, Carbs, Fats, 	Cals, 	Pref in, 	Hate in, 	Min U/S, 	Max U/S, 	Min U/D,	Max U/D,	Min S/D,	Max S/D)
-component(banana,					1100,	300,	23000,	89,		[],			[],			1, 			2, 			0,			2, 			0,			1).
-component(broccoli,					2800,	7000,	400,	34,		[],			[],			1, 			2, 			0,			2, 			0,			1).
-component(carrots,					900,	10000,	200,	41,		[],			[],			1, 			2, 			0,			2, 			0,			1).
-component(cheddar_cheese,			25000,	1300,	33000,	402,	[1,2,5],	[],			1, 			2, 			0,			2, 			0,			1).
-component(chicken_breast_uncooked,	21200,	0,		2500,	114,	[3],		[1],		1, 			4, 			0,			4, 			0,			1).
-component(egg_whites_uncooked,		11000,	700,	200,	52,		[],			[],			1, 			3, 			0,			3, 			0,			1).
-component(fish,						19000,	0,		6000,	134,	[3],		[1],		1, 			4, 			0,			4, 			0,			1).
-component(gouda_cheese,				25000,	2200,	27000,	356,	[1,2,5],	[],			1, 			3, 			0,			3, 			0,			1).
-component(honey,					300,	82000,	0,		304,	[],			[],			1, 			1, 			0,			1, 			0,			1).
-component(lean_beef_uncooked,		20000,	0,		6000,	137,	[3],		[1],		1, 			4, 			0,			4, 			0,			1).
-component(milk_full_fat,			3300,	4600,	3700,	64,		[],			[],			1, 			2, 			0,			2, 			0,			1).
-component(multi_grain_bread,		13000,	43000,	4200,	265,	[],			[],			1, 			2, 			0,			2, 			0,			1).
-component(olive_oil,				0,		0,		100000,	884,	[],			[],			1, 			1, 			0,			1, 			0,			1).
-component(pasta_uncooked,			13000,	75000,	1500,	371,	[3],		[1],		1, 			2, 			0,			2, 			0,			1).
-component(peanut_butter,			25000,	20000,	50000,	588,	[],			[],			1, 			2, 			0,			2, 			0,			1).
-component(pear,						400,	15000,	100,	57,		[],			[],			1, 			2, 			0,			2, 			0,			1).
-component(potato_uncooked,			2000,	17000,	100,	77,		[],			[],			1, 			2, 			0,			2, 			0,			1).
-component(salmon_uncooked,			20000,	0,		13000,	208,	[3],		[1],		1, 			2, 			0,			2, 			0,			1).
-component(shrimp_uncooked,			20000,	0,		500,	85,		[3],		[1],		1, 			2, 			0,			2, 			0,			1).
-component(skimmed_milk,				3400,	5000,	100,	34,		[],			[],			1, 			2, 			0,			2, 			0,			1).
-component(spinach,					2900,	3600,	400,	23,		[],			[1],		1, 			3, 			0,			3, 			0,			1).
-component(sweet_potato_uncooked,	1600,	20000,	0,		86,		[],			[],			1, 			2, 			0,			2, 			0,			1).
-component(swiss_cheese,				27000,	5000,	28000,	380,	[1,2,5],	[],			1, 			2, 			0,			2, 			0,			1).
-component(tomato,					900,	3900,	200,	18,		[],			[],			1, 			4, 			0,			4, 			0,			1).
-component(tuna_brine,				26000,	0,		1000,	116,	[],			[1],		1, 			3, 			0,			3, 			0,			1).
-component(whey_protein,				80000,	10000,	3300,	400,	[],			[],			1, 			1, 			0,			1, 			0,			1).
-component(white_rice_uncoooked,		7000,	82000,	600,	370,	[],			[],			1, 			1, 			0,			1, 			0,			1).
-component(whole_egg_uncooked,		13000,	700,	10000,	143,	[1],		[],			1, 			3, 			0,			3, 			0,			1).
 
 % Unit Conversion Predicates
 calories(bulk, TEE, CAL):- CAL is TEE * 1.2.
