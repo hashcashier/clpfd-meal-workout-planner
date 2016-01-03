@@ -58,14 +58,16 @@ today(P, F, C, L, M, Sched):-
 
 	%%%%% Compile components table
 	findall(
-		[Component, Ps, Fs, Cs, Ls, UPSLower, UPSUpper, UPDLower, UPDUpper, SPDLower, SPDUpper],
-		component(Component, Ps, Cs, Fs, Ls, _, _, UPSLower, UPSUpper, UPDLower, UPDUpper, SPDLower, SPDUpper),
+		[Component, Ps, Fs, Cs, Ls, Likes, Hates, UPSLower, UPSUpper, UPDLower, UPDUpper, SPDLower, SPDUpper],
+		component(Component, Ps, Cs, Fs, Ls, Likes, Hates, UPSLower, UPSUpper, UPDLower, UPDUpper, SPDLower, SPDUpper),
 		Components),
 	transpose(Components, ComponentsTranspose),
 	ComponentsTranspose = [
 		ComponentNames,
 		ComponentProteins, ComponentFats, ComponentCarbs, ComponentCalories,
-		ComponentUPSLowers, ComponentUPSUppers, ComponentUPDLowers, ComponentUPDUppers, 
+		ComponentLikedIns, ComponentHatedIns,
+		ComponentUPSLowers, ComponentUPSUppers,
+		ComponentUPDLowers, ComponentUPDUppers, 
 		ComponentSPDLowers, ComponentSPDUppers],
 	Nutrients = [ComponentProteins, ComponentFats, ComponentCarbs, ComponentCalories],
 	length(ComponentNames, N),
@@ -76,12 +78,24 @@ today(P, F, C, L, M, Sched):-
 	maplist(dom_limits, Matrix, ComponentUPSLowers, ComponentUPSUppers),
 	transpose(Matrix, MatrixTranspose),
 	daily_bounds(Matrix, ComponentUPDLowers, ComponentUPDUppers),
+	maplist(hated_timings, Matrix, ComponentHatedIns),
 
 	%%%%% Component X Meal Adj Mat
 	maplist(maplist(boolean_reduction), Matrix, BooleanMatrix),
 	transpose(BooleanMatrix, BooleanMatrixTranspose),
 	meal_bounds(BooleanMatrixTranspose),
 	serving_bounds(BooleanMatrix, ComponentSPDLowers, ComponentSPDUppers),
+
+	%%%%% Component X Meal Preference Matrix
+	length(PreferenceMatrix, N),
+	maplist(length2(M), PreferenceMatrix),
+	maplist(preferences, PreferenceMatrix, ComponentLikedIns),
+	length(PrefValueMatrix, N),
+	maplist(length2(M), PrefValueMatrix),
+	maplist(product, PreferenceMatrix, BooleanMatrix, PrefValueMatrix),
+	length(PrefScoreMatrix, N),
+	maplist(sum2(#=), PrefValueMatrix, PrefScoreMatrix),
+	sum(PrefScoreMatrix, #=, PreferenceScore),
 
 	%%%%% Nutrient (PFCL) X Meal Aggregate
 	length(Aggregate, 4),
@@ -99,9 +113,23 @@ today(P, F, C, L, M, Sched):-
 
 	%%%%% Label factors
 	flatten(Matrix, FlatMatrix),
-	label(FlatMatrix),
+	%label(FlatMatrix),
+	labeling([max(PreferenceScore)], FlatMatrix),
 	extract(ComponentNames, MatrixTranspose, Sched),
+	write("Meal Score: "), writeln(PreferenceScore),
 	display(1, Sched).
+
+preferences(Matrix, Meals):-
+	foldl(preferences(Meals), Matrix, 1, _).
+preferences(Meals, Value, N, N1):-
+	N1 is N+1,
+	(member(N, Meals) -> Value #= 1 ; \+member(N, Meals) -> Value #= 0).
+
+hated_timings(Meals, Hated):-
+	foldl(hated_timings(Hated), Meals, 1, _).
+hated_timings(Hated, M, N, N1):-
+	N1 is N+1,
+	((member(N, Hated), M #= 0);\+member(N, Hated)).
 
 daily_bounds(Matrix, UPDL, UPDU):- summation_bounds(Matrix, UPDL, UPDU).
 
@@ -123,7 +151,17 @@ meal_bounds(BooleanMatrix):-
 	% No Empty Meals
 	maplist(sum3(#>, 0), BooleanMatrix),
 	% No Super Salad Meals
-	maplist(sum3(#<, 6), BooleanMatrix).
+	maplist(sum3(#<, 6), BooleanMatrix),
+	length(BooleanMatrix, N),
+	(
+		(N = 3, threeMealRules(BooleanMatrix));
+		(N = 4, oneSnackRules(BooleanMatrix));
+		(N = 5, twoSnacksRules(BooleanMatrix));
+		(N < 3 ; N > 5)). % Not Applicable..
+
+threeMealRules(_). %%%% TO BE IMPLEMENTED
+oneSnackRules(_). %%%% TO BE IMPLEMENTED
+twoSnacksRules(_). %%%% TO BE IMPLEMENTED
 
 extract(Components, Matrix, Schedule):-
 	foldr(extract(Components), Matrix, [], Schedule).
@@ -140,11 +178,7 @@ bind_aggregate(M, N, Aggregate):-
 	product(M, N, P),
 	sum(P, #=, Aggregate).
 
-boolean_reduction(Integer, Boolean):-
-	Boolean #= min(1, Integer).
-
-dom_limits(Row, Lower, Upper):-
-	Row ins 0 \/ Lower..Upper.
+dom_limits(Row, Lower, Upper):- Row ins 0 \/ Lower..Upper.
 
 % Component(UNIQUE Name, 			Protein, Carbs, Fats, 	Cals, 	Pref in, 	Hate in, 	Min U/S, 	Max U/S, 	Min U/D,	Max U/D,	Min S/D,	Max S/D)
 component(banana,					1100,	300,	23000,	89,		[],			[],			1, 			2, 			0,			2, 			0,			1).
@@ -217,3 +251,5 @@ product(A, B, T, [H|T]):-
 summation_bounds(Summations, Lower, Upper):-
 	maplist(sum2(#>=), Summations, Lower),
 	maplist(sum2(#=<), Summations, Upper).
+
+boolean_reduction(Integer, Boolean):- Boolean #= min(1, Integer).
