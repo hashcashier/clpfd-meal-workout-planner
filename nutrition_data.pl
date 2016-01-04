@@ -139,3 +139,5 @@ combination([lean_beef_uncooked,
 			salmon_uncooked, 
 			shrimp_uncooked,
 			chicken_breast_uncooked], 									[], 						[1,2,3,4,5],			_).
+
+combination([white_rice_uncoooked, pasta_uncooked],						[], 						[1,2,3,4,5],			_).

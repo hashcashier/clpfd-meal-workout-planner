@@ -5,10 +5,10 @@
 
 % Plan/6 for a month
 plan(Goal, MealsPerDay, Weight, FatPerc, ActivityVariable, Schedule):-
-	plan(Goal, MealsPerDay, Weight, FatPerc, ActivityVariable, 3, 7, Schedule).
+	plan(Goal, MealsPerDay, Weight, FatPerc, ActivityVariable, 4, Schedule).
 
-% Plan/8 for 7*Weeks + Days days.
-plan(Goal, MealsPerDay, Weight, FatPerc, ActivityVariable, Weeks, Days, Schedule):-
+% Plan/7 for Weeks.
+plan(Goal, MealsPerDay, Weight, FatPerc, ActivityVariable, Weeks, Schedule):-
 	MealsPerDay > 2,
 	MealsPerDay < 6,
 	LBM is Weight*(100 - FatPerc) / 100,
@@ -19,23 +19,30 @@ plan(Goal, MealsPerDay, Weight, FatPerc, ActivityVariable, Weeks, Days, Schedule
 	fat(LBM, Fat),
 	carbs(CAL, Protein, Fat, Carbs),
 	Calories is integer(CAL),
-	write("Protein: "), writeln(Protein),
-	write("Fat: "), writeln(Fat),
-	write("Carbs: "), writeln(Carbs),
-	write("Calories: "), writeln(Calories),
-	% Plan/10 for 7*Weeks + Days days
-	plan(Protein, Fat, Carbs, Calories, MealsPerDay, Schedule, Weeks, Days, [], []).
+	%write("Protein: "), writeln(Protein),
+	%write("Fat: "), writeln(Fat),
+	%write("Carbs: "), writeln(Carbs),
+	%write("Calories: "), writeln(Calories),
+	% Generate Daily Plans And Distribute
+	findnsols(16, DailyPlan, today(Protein, Fat, Carbs, Calories, MealsPerDay, DailyPlan), DailyPlans),
+	% Plan/3 for Weeks
+	plan(DailyPlans, Weeks, Schedule).
+	%plan(Protein, Fat, Carbs, Calories, MealsPerDay, Schedule, Weeks, Days, [], []).
 
-% Plan/10 complete. Dump Accumulators
-plan(_, _, _, _, _, [WACC|SACC], 0, 0, WACC, SACC).
+% Plan/3 for Weeks.
+plan(Repertoire, Weeks, Schedule):-
+	length(Schedule, Weeks),
+	maplist(length2(7), Schedule),
+	partition_4(Repertoire, MealsInWeek),
+	maplist(distribute, MealsInWeek, Schedule).
 
-% Plan/10 for a new week
-plan(Protein, Fat, Carbs, Calories, MPD, Schedule, Weeks, 0, WACC, SACC):-
-	Weeks > 0,
-	RemWeeks is Weeks-1,
-	%%%%%%%%%%%%%%%%%%%noWeeksRep(WACC, SACC),
-	% Plan/10 for a day
-	plan(Protein, Fat, Carbs, Calories, MPD, Schedule, RemWeeks, 7, [], [WACC|SACC]).
+partition_4([], []).
+partition_4([A, B, C, D | Rem], [[A, B, C, D] | T]):-
+	partition_4(Rem, T).
+
+distribute(DailyPlans, WeekPlan):-
+	DailyPlans = 	[A, B, C, D],
+	WeekPlan   = 	[A, B, C, D, A, B, C].
 
 % Plan/10 for this week
 plan(Protein, Fat, Carbs, Calories, MPD, Schedule, Weeks, Days, WACC, SACC):-
@@ -49,13 +56,13 @@ plan(Protein, Fat, Carbs, Calories, MPD, Schedule, Weeks, Days, WACC, SACC):-
 today(P, F, C, L, M, Sched):-
 	%%%%% Calculate Nutrient Bounds
 	PL is integer(P * 950),
-	PH is integer(P * 1050),
+	PH is integer(P * 1100),
 	FL is integer(F * 950),
-	FH is integer(F * 1050),
+	FH is integer(F * 1100),
 	CL is integer(C * 950),
-	CH is integer(C * 1050),
+	CH is integer(C * 1100),
 	LL is integer(L * 0.95),
-	LH is integer(L * 1.05),
+	LH is integer(L * 1.10),
 
 	%%%%% Compile components table
 	findall(
@@ -117,12 +124,14 @@ today(P, F, C, L, M, Sched):-
 
 	%%%%% Label boolean factors
 	flatten(BooleanMatrix, FlatBooleanMatrix),
-	labeling([max(MealScore)], FlatBooleanMatrix),
-	%label(FlatBooleanMatrix),
+	sum(FlatBooleanMatrix, #=, MealCount),
+	MealScore #>= MealCount//2 + 1,
+	%labeling([max(MealScore)], FlatBooleanMatrix),
+	label(FlatBooleanMatrix),
 
-	%extract(ComponentNames, BooleanMatrixTranspose, Sched),
-	%write("Meal Score: "), writeln(MealScore),
-	%display(1, Sched),
+	%extract(ComponentNames, BooleanMatrixTranspose, Sched2),
+	%write("Items: "), write(MealCount), write(" Score: "), writeln(MealScore),
+	%pretty_print(1, Sched2),
 
 	%%%%% Component X Meal Flow Mat
 	length(FlowMatrix, N),
@@ -155,12 +164,12 @@ today(P, F, C, L, M, Sched):-
 	%%%%% Label factors
 	flatten(Matrix, FlatMatrix),
 	once(label(FlatMatrix)),
-	extract(ComponentNames, MatrixTranspose, Sched),
-	write("Meal Score: "), writeln(MealScore),
-	display(1, Sched).
+	%write("One day plan generated with score: "), writeln(MealScore),
+	extract(ComponentNames, MatrixTranspose, Sched).
+	%pretty_print(1, Sched).
 
 no_hated_meals(Factor, ANDResult):-
-	(Factor < 0 -> ANDResult #= 0) ; Factor >= 0.
+	(Factor < 0, ANDResult #= 0) ; Factor >= 0.
 
 combination_factors([Components, LikedIn, HatedIn], Row):-
 	length(Components, N),
@@ -168,8 +177,8 @@ combination_factors([Components, LikedIn, HatedIn], Row):-
 combination_factors(LikedIn, HatedIn, Value, Variable, N, N1):-
 	N1 is N+1,
 	(
-		(member(N, LikedIn) -> Variable #= Value) ; 
-		(member(N, HatedIn) -> Variable #= -Value) ; 
+		(member(N, LikedIn), Variable #= Value) ; 
+		(member(N, HatedIn), Variable #= -Value) ; 
 		(\+member(N, LikedIn), \+member(N, HatedIn), Variable #= 0)).
 
 combine_mat(BooleanMatrix, ComponentNames, Combination, ANDedComponents):-
@@ -195,14 +204,14 @@ amongst(L, [C|_]):-
 no_zero_factors(BooleanMatrix, FlowMatrix):-
 	maplist(maplist(boolean_sync), BooleanMatrix, FlowMatrix).
 boolean_sync(A, B):-
-	(A > 0 -> B #> 0);
-	(A = 0 -> B #= 0).
+	(A > 0, B #> 0);
+	(A = 0, B #= 0).
 
 preferences(Matrix, Meals):-
 	foldl(preferences(Meals), Matrix, 1, _).
 preferences(Meals, Value, N, N1):-
 	N1 is N+1,
-	(member(N, Meals) -> Value #= 1 ; \+member(N, Meals) -> Value #= 0).
+	(member(N, Meals), Value #= 1 ; \+member(N, Meals), Value #= 0).
 
 hated_timings(Meals, Hated):-
 	foldl(hated_timings(Hated), Meals, 1, _).
@@ -214,33 +223,50 @@ daily_bounds(Matrix, UPDL, UPDU):- summation_bounds(Matrix, UPDL, UPDU).
 
 serving_bounds(BooleanMatrix, SPDL, SPDU):- summation_bounds(BooleanMatrix, SPDL, SPDU).
 
-display(_, []).
-display(N, [H|T]):-
+pretty_print(_, []).
+pretty_print(N, [H|T]):-
 	write("Meal "), write(N), writeln(": "),
-	display(H),
+	pretty_print(H),
 	N1 is N+1,
-	display(N1, T).
-display([]).
-display([H|T]):-
+	pretty_print(N1, T).
+pretty_print([]).
+pretty_print([H|T]):-
 	H = eat(Quantity, Name),
 	write("\t"), write(Name), write(": "), write(Quantity), writeln(" Serving(s)"),
-	display(T).
+	pretty_print(T).
 
-meal_bounds(BooleanMatrix):-
+meal_bounds(BooleanMatrixTranspose):-
 	% No Empty Meals
-	maplist(sum3(#>, 0), BooleanMatrix),
+	maplist(sum3(#>, 0), BooleanMatrixTranspose),
 	% No Super Salad Meals
-	maplist(sum3(#<, 5), BooleanMatrix),
-	length(BooleanMatrix, N),
+	maplist(sum3(#<, 5), BooleanMatrixTranspose),
+	length(BooleanMatrixTranspose, N),
 	(
-		(N = 3, threeMealRules(BooleanMatrix));
-		(N = 4, oneSnackRules(BooleanMatrix));
-		(N = 5, twoSnacksRules(BooleanMatrix));
+		(N = 3, threeMealRules(BooleanMatrixTranspose));
+		(N = 4, oneSnackRules(BooleanMatrixTranspose));
+		(N = 5, twoSnacksRules(BooleanMatrixTranspose));
 		(N < 3 ; N > 5)). % Not Applicable..
 
-threeMealRules(_). %%%% TO BE IMPLEMENTED
-oneSnackRules(_). %%%% TO BE IMPLEMENTED
-twoSnacksRules(_). %%%% TO BE IMPLEMENTED
+threeMealRules(BooleanMatrixTranspose):-
+	BooleanMatrixTranspose = [Breakfast, Lunch, Dinner],
+	sum(Breakfast, #>, 1), sum(Breakfast, #<, 4),%2..3
+	sum(Lunch, #>, 2), %3..4
+	sum(Dinner, #>, 1), sum(Dinner, #<, 4). %2..3
+oneSnackRules(BooleanMatrixTranspose):-
+	BooleanMatrixTranspose = [Breakfast, Snack, Lunch, Dinner],
+	sum(Breakfast, #>, 1), sum(Breakfast, #<, 4),%2..3
+	sum(Snack, #<, 3), %1..2
+	sum(Lunch, #>, 2), %3..4
+	sum(Dinner, #>, 1), sum(Dinner, #<, 4). %2..3
+
+twoSnacksRules(BooleanMatrixTranspose):-
+	BooleanMatrixTranspose = [Breakfast, Snack1, Lunch, Snack2, Dinner],
+	sum(Breakfast, #>, 1), sum(Breakfast, #<, 4),%2..3
+	sum(Snack1, #<, 3), %1..2
+	sum(Lunch, #>, 2), %3..4
+	sum(Snack2, #<, 3), %1..2
+	sum(Dinner, #>, 1), sum(Dinner, #<, 4). %2..3
+	
 
 extract(Components, Matrix, Schedule):-
 	foldr(extract(Components), Matrix, [], Schedule).
