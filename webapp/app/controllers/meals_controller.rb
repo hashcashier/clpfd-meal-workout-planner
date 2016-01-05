@@ -8,7 +8,7 @@ class MealsController < ApplicationController
     weight = params[:weight]
     fatPercentage = params[:fatPercentage]
     activityVariable = params[:activityVariable]
-    query = "plan(#{[goal, mealsPerDay, weight, fatPercentage, activityVariable, Random.rand(1000), "Plan"].join "," })"
+    query = "plan(#{[goal, mealsPerDay, weight, fatPercentage, activityVariable, Random.rand(100), "Plan"].join "," })"
     plan = ApplicationHelper.solve_prolog("meals.pl", query, ["Plan"])
     render text: "#{plan}"
   end
