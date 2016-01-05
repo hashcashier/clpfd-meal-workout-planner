@@ -15,3 +15,24 @@
 //= require bootstrap-sprockets
 //= require turbolinks
 //= require_tree .
+
+
+function parsePrologArray(data) {
+  var ret = [];
+  var depth = 0;
+  var str = ""
+  for(var i=1;i<data.length-1;i++){
+    if(data[i] == '[' || data[i] == '(')
+      depth++;
+    else if(data[i] == ']' || data[i] == ')')
+      depth--;
+    if(data[i] == ',' && depth == 0){
+      ret.push(str);
+      str = "";
+    }else{
+      str += data[i];
+    }
+  }
+  ret.push(str)
+  return ret;
+}
