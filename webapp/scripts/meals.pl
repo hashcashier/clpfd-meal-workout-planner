@@ -3,12 +3,12 @@
 :- use_module(library(apply)).
 :- consult(nutrition_data).
 
-% Plan/6 for a month
-plan(Goal, MealsPerDay, Weight, FatPerc, ActivityVariable, Schedule):-
-	plan(Goal, MealsPerDay, Weight, FatPerc, ActivityVariable, 4, Schedule).
+% Plan/7 for a month
+plan(Goal, MealsPerDay, Weight, FatPerc, ActivityVariable, RandomizationSeed, Schedule):-
+	plan(Goal, MealsPerDay, Weight, FatPerc, ActivityVariable, 4, RandomizationSeed, Schedule).
 
-% Plan/7 for Weeks.
-plan(Goal, MealsPerDay, Weight, FatPerc, ActivityVariable, Weeks, Schedule):-
+% Plan/8 for Weeks.
+plan(Goal, MealsPerDay, Weight, FatPerc, ActivityVariable, Weeks, RandomizationSeed, Schedule):-
 	MealsPerDay > 2,
 	MealsPerDay < 6,
 	LBM is Weight*(100 - FatPerc) / 100,
@@ -24,10 +24,9 @@ plan(Goal, MealsPerDay, Weight, FatPerc, ActivityVariable, Weeks, Schedule):-
 	%write("Carbs: "), writeln(Carbs),
 	%write("Calories: "), writeln(Calories),
 	% Generate Daily Plans And Distribute
-	findnsols(16, DailyPlan, today(Protein, Fat, Carbs, Calories, MealsPerDay, DailyPlan), DailyPlans),
+	findnsols(16, DailyPlan, today(Protein, Fat, Carbs, Calories, MealsPerDay, RandomizationSeed, DailyPlan), DailyPlans),
 	% Plan/3 for Weeks
 	plan(DailyPlans, Weeks, Schedule).
-	%plan(Protein, Fat, Carbs, Calories, MealsPerDay, Schedule, Weeks, Days, [], []).
 
 % Plan/3 for Weeks.
 plan(Repertoire, Weeks, Schedule):-
@@ -44,16 +43,7 @@ distribute(DailyPlans, WeekPlan):-
 	DailyPlans = 	[A, B, C, D],
 	WeekPlan   = 	[A, B, C, D, A, B, C].
 
-% Plan/10 for this week
-plan(Protein, Fat, Carbs, Calories, MPD, Schedule, Weeks, Days, WACC, SACC):-
-	Days > 0,
-	today(Protein, Fat, Carbs, Calories, MPD, Today),
-	%%%%%%%%%%%%%%%%%%%%%thirdMealRule(Today, WACC),
-	RD is Days - 1,
-	%Plan/10 for the remaining days
-	plan(Protein, Fat, Carbs, Calories, MPD, Schedule, Weeks, RD, [Today|WACC], SACC).
-
-today(P, F, C, L, M, Sched):-
+today(P, F, C, L, M, RandomizationSeed, Sched):-
 	%%%%% Calculate Nutrient Bounds
 	PL is integer(P * 950),
 	PH is integer(P * 1100),
@@ -127,7 +117,8 @@ today(P, F, C, L, M, Sched):-
 	sum(FlatBooleanMatrix, #=, MealCount),
 	MealScore #>= MealCount//2 + 1,
 	%labeling([max(MealScore)], FlatBooleanMatrix),
-	label(FlatBooleanMatrix),
+	%label(FlatBooleanMatrix),
+	labeling([random_variable(RandomizationSeed),random_value(RandomizationSeed)], FlatBooleanMatrix),
 
 	%extract(ComponentNames, BooleanMatrixTranspose, Sched2),
 	%write("Items: "), write(MealCount), write(" Score: "), writeln(MealScore),
