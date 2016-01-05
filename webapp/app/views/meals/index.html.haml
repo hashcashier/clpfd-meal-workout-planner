@@ -1,4 +1,9 @@
-.h1 Meals Planner
+%ol.breadcrumb{style: "background: white;" }
+  %li
+    %a{href:"/"} Home
+  %li.active{href:"/"} Meal Planner
+
+%h1 Meals Planner
 
 %div.container-fluid
   .row.form-group
@@ -19,7 +24,7 @@
     %label{ for: "meals-activity-variable" } Activity Variable
     %input.form-control{ id: "meals-activity-variable", type: "number", min: "1.2", max: "2.2", step: "0.1", value: "1.2" }
   .row.form-group
-    %input.btn.form-control{ id: "meals-submit", type: "submit" }
+    %input.btn.form-control.btn-info{ id: "meals-submit", type: "submit" }
 
 #loading.row{ style: "display:none;" }
   .col-md-2.col-md-offset-5

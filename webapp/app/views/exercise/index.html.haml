@@ -1,4 +1,9 @@
-.h1 Exercise Planner!
+%ol.breadcrumb{style: "background: white;" }
+  %li
+    %a{href:"/"} Home
+  %li.active{href:"/"} Excersie Planner
+
+%h1 Exercise Planner!
 
 %div.container-fluid
   .row.form-group
@@ -11,7 +16,7 @@
       %option{ value: "cut" } Cutting
 
   .row.form-group
-    %input.btn.form-control{ id: "exercise-submit", type: "submit" }
+    %input.btn.btn-info.form-control{ id: "exercise-submit", type: "submit" }
 
 #loading.row{ style: "display:none;" }
   .col-md-2.col-md-offset-5
