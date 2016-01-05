@@ -44,7 +44,8 @@ exercise_plan_week(NumOfDaysPerWeek, Type, MuscleDays, Exercises ) :-
 
   % Limit number of muslces per day:
   length(MuscleDays, NumOfMuscles),
-  MaxMusclesPerDay is ceil(NumOfMuscles / NumOfDaysPerWeek),
+  MaxMusclesPerDayTemp is ceil(NumOfMuscles / NumOfDaysPerWeek),
+  max_list([MaxMusclesPerDayTemp, 3], MaxMusclesPerDay),
   cumulative([
     task(ChestDay,1,_,1,_),
     task(AbsDay,1,_,1,_),
@@ -57,6 +58,9 @@ exercise_plan_week(NumOfDaysPerWeek, Type, MuscleDays, Exercises ) :-
     task(TrapsDay,1,_,1,_),
     task(CalvesDay,1,_,1,_)
   ], [limit(MaxMusclesPerDay)]),
+
+  % Make sure that there's at least one exercise per day
+  at_least_one_muscle_per_day(MuscleDays, 1, NumOfDaysPerWeek),
 
   % Get Exercises :
   exercise(chest, ChestExercises),
@@ -74,6 +78,15 @@ exercise_plan_week(NumOfDaysPerWeek, Type, MuscleDays, Exercises ) :-
                   QuadsExercises, HamsExercises, TrapsExercises, CalvesExercises ]
   .
 
+
+at_least_one_muscle_per_day(MuscleDays, NumOfDaysPerWeek, NumOfDaysPerWeek) :-
+  element(_, MuscleDays, NumOfDaysPerWeek).
+
+at_least_one_muscle_per_day(MuscleDays, Day, NumOfDaysPerWeek) :-
+  Day \= NumOfDaysPerWeek,
+  element(_, MuscleDays, Day),
+  NDay is Day + 1,
+  at_least_one_muscle_per_day(MuscleDays, NDay, NumOfDaysPerWeek).
 
 select_exercises(Rating5Exercises, AllExercises, Ret) :-
   random_subset(Rating5Exercises, 2, Subset),
