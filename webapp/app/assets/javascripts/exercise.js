@@ -73,12 +73,21 @@ function parseAndShowExercise(data) {
         $("#exercises > *").hide();
         $("#exercise-data-" + id).show();
         $("*[id^=\"exercise-id-\"]").each(function(){$(this).parent().removeClass("active");});
+        $("#exercise-show-all").parent().removeClass("active");
         $("#exercise-id-" + id).parent().addClass("active");
       });
       pagination.append($("<li></li>").append(newLink));
       ids++;
     }
   }
+
+  var showAll = $("<a href='#' id='exercise-show-all' >Show All</a>");
+  showAll.click(function(){
+      $("*[id^=\"exercise-id-\"]").each(function(){$(this).parent().removeClass("active");});
+      $("#exercise-show-all").parent().addClass("active");
+      $("#exercises > *").show();
+  });
+  pagination.append($("<li></li>").append(showAll));
 
   var ids = 0;
   for(var i=0;i<4;i++){
@@ -88,7 +97,9 @@ function parseAndShowExercise(data) {
         if(days[i][k].dayNum == (j+1))
           dayContent.push(days[i][k]);
       }
-      var newDev = $("<div style='display:none;' id='exercise-data-" + ids + "'></div>").append(renderDay(dayContent));
+      var newDev = $("<div style='display:none;' id='exercise-data-" + ids + "'></div>");
+      newDev.append($("<h1 class='text-center'>Week "+ (i+1) + " Day " + (j+1) + "</h1>"))
+      newDev.append(renderDay(dayContent));
       $("#exercises").append(newDev);
       ids++;
     }

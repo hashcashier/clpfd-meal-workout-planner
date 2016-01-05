@@ -58,13 +58,24 @@ function parseAndShowMeals(data) {
       $("#meals > *").hide();
       $("#meal-data-" + id).show();
       $("*[id^=\"meal-id-\"]").each(function(){$(this).parent().removeClass("active");});
+      $("#meal-show-all").parent().removeClass("active");
       $("#meal-id-" + id).parent().addClass("active");
     });
     pagination.append($("<li></li>").append(newLink));
   }
 
+  var showAll = $("<a href='#' id='meal-show-all' >Show All</a>");
+  showAll.click(function(){
+      $("*[id^=\"meal-id-\"]").each(function(){$(this).parent().removeClass("active");});
+      $("#meal-show-all").parent().addClass("active");
+      $("#meals > *").show();
+  });
+  pagination.append($("<li></li>").append(showAll));
+
   for(var i=0;i<parsedDaySchedules.length;i++){
-    var newDev = $("<div style='display:none;' id='meal-data-" + i + "'></div>").append(renderMealDay(parsedDaySchedules[i].meals));
+    var newDev = $("<div style='display:none;' id='meal-data-" + i + "'></div>");
+    newDev.append($("<h1 class='text-center'>Day "+ (i+1) +"</h1>"))
+    newDev.append(renderMealDay(parsedDaySchedules[i].meals));
     $("#meals").append(newDev);
   }
 
