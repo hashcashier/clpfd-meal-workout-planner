@@ -25,9 +25,16 @@ plan(Goal, MealsPerDay, Weight, FatPerc, ActivityVariable, Weeks, Schedule):-
 	%write("Carbs: "), writeln(Carbs),
 	%write("Calories: "), writeln(Calories),
 	% Generate Daily Plans And Distribute
-	random_meals(Protein, Fat, Carbs, Calories, MealsPerDay, 16, DailyPlans),
-	% Plan/3 for Weeks
-	plan(DailyPlans, Weeks, Schedule).
+	random_meals(Protein, Fat, Carbs, Calories, MealsPerDay, 6, DailyPlans),
+	DailyPlans = [Plan1, Plan2, Plan3, Plan4, Plan5, Plan6],
+	Schedule = [
+		[Plan1, Plan6, Plan3, Plan4, Plan1, Plan6, Plan3],
+		[Plan4, Plan2, Plan1, Plan5, Plan4, Plan2, Plan1],
+		[Plan1, Plan5, Plan4, Plan3, Plan1, Plan5, Plan4],
+		[Plan6, Plan2, Plan5, Plan4, Plan6, Plan2, Plan5]
+	].
+	%% Plan/3 for Weeks
+	%plan(DailyPlans, Weeks, Schedule).
 
 random_meals(Protein, Fat, Carbs, Calories, MealsPerDay, N, Plans):-
 	%findnsols(16, DailyPlan, random_meal(Protein, Fat, Carbs, Calories, MealsPerDay, DailyPlan), DailyPlans),
@@ -257,18 +264,18 @@ threeMealRules(BooleanMatrixTranspose):-
 	sum(Dinner, #>, 1), sum(Dinner, #<, 4). %2..3
 oneSnackRules(BooleanMatrixTranspose):-
 	BooleanMatrixTranspose = [Breakfast, Snack, Lunch, Dinner],
-	sum(Breakfast, #>, 1), sum(Breakfast, #<, 4),%2..3
-	sum(Snack, #<, 3), %1..2
-	sum(Lunch, #>, 2), %3..4
-	sum(Dinner, #>, 1), sum(Dinner, #<, 4). %2..3
+	sum(Breakfast, #=, 3),
+	sum(Snack, #=, 2),
+	sum(Lunch, #=, 3),
+	sum(Dinner, #=, 2).
 
 twoSnacksRules(BooleanMatrixTranspose):-
 	BooleanMatrixTranspose = [Breakfast, Snack1, Lunch, Snack2, Dinner],
-	sum(Breakfast, #>, 1), sum(Breakfast, #<, 4),%2..3
-	sum(Snack1, #<, 3), %1..2
-	sum(Lunch, #>, 2), %3..4
-	sum(Snack2, #<, 3), %1..2
-	sum(Dinner, #>, 1), sum(Dinner, #<, 4). %2..3
+	sum(Breakfast, #=, 3),
+	sum(Snack1, #=, 2),
+	sum(Lunch, #=, 3),
+	sum(Snack2, #=, 1),
+	sum(Dinner, #=, 1).
 	
 
 extract(Components, Matrix, Schedule):-
