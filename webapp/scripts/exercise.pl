@@ -75,6 +75,16 @@ exercise_plan_week(NumOfDaysPerWeek, Type, MuscleDays, Exercises ) :-
   .
 
 
+select_exercises(Rating5Exercises, AllExercises, Ret) :-
+  random_subset(Rating5Exercises, 2, Subset),
+  subtract(AllExercises, Subset, Remaining),
+  random_subset(Remaining, 3, SelectedRemaining),
+  append(Subset, SelectedRemaining, Ret).
+
+random_subset(List, Length, Ret) :-
+  random_permutation(List, RList),
+  prefix(RList, Length, Ret).
+
 prefix(_, 0, []).
 prefix([H|T], X, [Z|T2]) :-
   Z = H,
@@ -82,6 +92,10 @@ prefix([H|T], X, [Z|T2]) :-
   prefix(T, NewX, T2).
 
 exercise(chest, ChestExercises) :- 
+  Rating5 = [
+      flat_bench_press,
+      inclined_bench_press
+  ],
   X = [
       flat_bench_press,
       inclined_bench_press,
@@ -91,11 +105,15 @@ exercise(chest, ChestExercises) :-
       incline_dumbbell_flys,
       low_cable_crossover,
       straight
-      ],
-  random_permutation(X, X2),
-  prefix(X2, 5, ChestExercises)
+  ],
+  select_exercises(Rating5, X, ChestExercises)
   .
+
 exercise(abs, AbsExercises) :- 
+  Rating5 = [
+      one-arm_high-pulley_cable_side_bends,
+      cable_crunch
+  ],
   X = [
       bent-knee_hip_raise,
       cable_crunch,
@@ -109,10 +127,14 @@ exercise(abs, AbsExercises) :-
       knee/hip_raise_on_parallel_bars,
       one-arm_high-pulley_cable_side_bends
   ],
-  random_permutation(X, X2),
-  prefix(X2, 5, AbsExercises)
+  select_exercises(Rating5, X, AbsExercises)
   .
 exercise(bi, BiExercises) :- 
+  Rating5 = [
+      alternate_hammer_curl,
+      barbell_curl,
+      close-grip_ez_bar_curl
+  ],
   X = [
       alternate_hammer_curl,
       alternate_incline_dumbbell_curl,
@@ -125,10 +147,13 @@ exercise(bi, BiExercises) :-
       standing_one-arm_dumbbell_curl_over_incline_bench,
       wide-grip_standing_barbell_curl
   ],
-  random_permutation(X, X2),
-  prefix(X2, 5, BiExercises)
+  select_exercises(Rating5, X, BiExercises)
   .
 exercise(tri, TriExercises) :- 
+  Rating5 = [
+      ez-bar_skullcrusher,
+      triceps_pushdown
+  ],
   X = [
       cable_one_arm_tricep_extension,
       cable_rope_overhead_triceps_extension,
@@ -141,10 +166,13 @@ exercise(tri, TriExercises) :-
       triceps_pushdown,
       weighted_bench_dip
   ],
-  random_permutation(X, X2),
-  prefix(X2, 5, TriExercises)
+  select_exercises(Rating5, X, TriExercises)
   .
 exercise(shoulder, ShoulderExercises) :- 
+  Rating5 = [
+      dumbbell_lying_one-arm_rear_lateral_raise,
+      dumbbell_shoulder_press
+  ],
   X = [
       alternating_deltoid_raise,
       barbell_shoulder_press,
@@ -157,10 +185,15 @@ exercise(shoulder, ShoulderExercises) :-
       seated_side_lateral_raise,
       smith_machine_overhead_shoulder_press
   ],
-  random_permutation(X, X2),
-  prefix(X2, 5, ShoulderExercises)
+  select_exercises(Rating5, X, ShoulderExercises)
   .
 exercise(back, BackExercises) :- 
+  Rating5 = [
+      barbell_deadlift,
+      bent_over_barbell_row,
+      reverse_grip_bent-over_rows,
+      wide-grip_lat_pulldown
+  ],
   X = [
       barbell_deadlift,
       bent_over_barbell_row,
@@ -172,10 +205,14 @@ exercise(back, BackExercises) :-
       v-bar_pulldown,
       wide-grip_lat_pulldown
   ],
-  random_permutation(X, X2),
-  prefix(X2, 5, BackExercises)
+  select_exercises(Rating5, X, BackExercises)
   .
 exercise(quads, QuadsExercises) :- 
+  Rating5 = [
+      barbell_full_squat,
+      front_barbell_squat,
+      leg_press
+  ],
   X = [
       barbell_full_squat,
       front_barbell_squat,
@@ -186,10 +223,14 @@ exercise(quads, QuadsExercises) :-
       smith_machine_squat,
       split_squat_with_dumbbells
   ],
-  random_permutation(X, X2),
-  prefix(X2, 5, QuadsExercises)
+  select_exercises(Rating5, X, QuadsExercises)
   .
 exercise(hams, HamsExercises) :- 
+  Rating5 = [
+      lying_leg_curls,
+      romanian_deadlift,
+      seated_leg_curl
+  ],
   X = [
       floor_glute-ham_raise,
       good_morning,
@@ -198,10 +239,16 @@ exercise(hams, HamsExercises) :-
       seated_leg_curl,
       stiff-legged_dumbbell_deadlift
   ],
-  random_permutation(X, X2),
-  prefix(X2, 5, HamsExercises)
+  select_exercises(Rating5, X, HamsExercises)
   .
 exercise(traps, TrapsExercises) :- 
+  Rating5 = [
+      barbell_shrug_behind_the_back,
+      barbell_shrug,
+      dumbbell_shrug,
+      smith_machine_shrug,
+      cable_shrugs
+  ],
   X = [
       barbell_shrug_behind_the_back,
       barbell_shrug,
@@ -209,10 +256,16 @@ exercise(traps, TrapsExercises) :-
       smith_machine_shrug,
       cable_shrugs
   ],
-  random_permutation(X, X2),
-  prefix(X2, 5, TrapsExercises)
+  select_exercises(Rating5, X, TrapsExercises)
   .
 exercise(calves, CalvesExercises) :- 
+  Rating5 = [
+      barbell_seated_calf_raise,
+      calf_press_on_the_leg_press_machine,
+      seated_calf_raise,
+      smith_machine_calf_raise,
+      standing_dumbbell_calf_raise
+  ],
   X = [
       barbell_seated_calf_raise,
       calf_press_on_the_leg_press_machine,
@@ -220,8 +273,7 @@ exercise(calves, CalvesExercises) :-
       smith_machine_calf_raise,
       standing_dumbbell_calf_raise
   ],
-  random_permutation(X, X2),
-  prefix(X2, 5, CalvesExercises)
+  select_exercises(Rating5, X, CalvesExercises)
   .
 
 repetition_strategy(Strategy) :-
