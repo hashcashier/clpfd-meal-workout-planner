@@ -1,9 +1,9 @@
 Rails.application.routes.draw do
-  get 'meals/index'
+  get 'meals' => 'meals#index'
 
   get 'meals/solve'
 
-  get 'exercise/index'
+  get 'exercise' => 'exercise#index'
 
   get 'exercise/solve'
 

@@ -1,0 +1,26 @@
+.h1 Exercise Planner!
+
+%div.container-fluid
+  .row.form-group
+    %label{ for: "exercise-num-days" } Number of Days per week
+    %input.form-control{ id: "exercise-num-days", type: "number", min: "2", max: "5", value: "2", placeholder: "Number of Days per week" }
+  .row.form-group
+    %label{ for: "exercise-type" } Exercise Type
+    %select.form-control{ id: "exercise-type"}
+      %option{ value: "bulk" } Bulking
+      %option{ value: "cut" } Cutting
+
+  .row.form-group
+    %input.btn.form-control{ id: "exercise-submit", type: "submit" }
+
+#loading.row{ style: "display:none;" }
+  .col-md-2.col-md-offset-5
+    .row
+      %img.col-md-4.col-md-offset-4{ src: "http://vstark.net/images/2012-05-30-ajax-progress-indicator/6291334.gif" }
+
+#solution.row
+  %nav.text-center
+    %ul.pagination{ id: "pagination" }
+  #exercises
+
+

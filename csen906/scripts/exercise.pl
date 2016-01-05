@@ -27,9 +27,9 @@ exercise_plan_month(NumOfDaysPerWeek, Type, Plan) :-
   format_week_plan(MuscleDay3, Ex3Formated, [chest, abs, bi, tri, shoulder, back, quads, hams, traps, calves], MuscleDay3Formated),
   format_week_plan(MuscleDay4, Ex4Formated, [chest, abs, bi, tri, shoulder, back, quads, hams, traps, calves], MuscleDay4Formated),
 
-  Plan = [MuscleDay1Formated, MuscleDay2Formated, MuscleDay3Formated, MuscleDay4Formated],
+  Plan = [MuscleDay1Formated, MuscleDay2Formated, MuscleDay3Formated, MuscleDay4Formated]
 
-  pretty_print_plan(Plan)
+  %pretty_print_plan(Plan)
   .
 
 
