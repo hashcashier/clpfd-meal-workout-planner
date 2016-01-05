@@ -28,7 +28,12 @@ exercise_plan_month(NumOfDaysPerWeek, Type, Plan) :-
   format_week_plan(MuscleDay3, Ex3Formated, [chest, abs, bi, tri, shoulder, back, quads, hams, traps, calves], MuscleDay3Formated),
   format_week_plan(MuscleDay4, Ex4Formated, [chest, abs, bi, tri, shoulder, back, quads, hams, traps, calves], MuscleDay4Formated),
 
-  Plan = [MuscleDay1Formated, MuscleDay2Formated, MuscleDay3Formated, MuscleDay4Formated]
+  add_cardio(MuscleDay1Formated, Type, NumOfDaysPerWeek, MD1Cardio),
+  add_cardio(MuscleDay2Formated, Type, NumOfDaysPerWeek, MD2Cardio),
+  add_cardio(MuscleDay3Formated, Type, NumOfDaysPerWeek, MD3Cardio),
+  add_cardio(MuscleDay4Formated, Type, NumOfDaysPerWeek, MD4Cardio),
+
+  Plan = [MD1Cardio, MD2Cardio, MD3Cardio, MD4Cardio]
 
   %pretty_print_plan(Plan)
   .
@@ -88,6 +93,21 @@ at_least_one_muscle_per_day(MuscleDays, Day, NumOfDaysPerWeek) :-
   element(_, MuscleDays, Day),
   NDay is Day + 1,
   at_least_one_muscle_per_day(MuscleDays, NDay, NumOfDaysPerWeek).
+
+add_cardio(MuscleDayFormated, bulk, _, MuscleDayFormated).
+add_cardio(MuscleDayFormated, cut, NumOfDaysPerWeek, MSDCardio) :-
+  CardioDays = [ CardioDay1, CardioDay2, CardioDay3 ],
+  CardioDays ins 1..NumOfDaysPerWeek,
+  all_different(CardioDays),
+  random(1, 100101001, Seed),
+  labeling([random_variable(Seed), random_value(Seed)], CardioDays),
+  append(MuscleDayFormated, [
+        day(CardioDay1, cardio, [times(1,[workout_rep(cardio,1)])]),
+        day(CardioDay2, cardio, [times(1,[workout_rep(cardio,1)])]),
+        day(CardioDay3, cardio, [times(1,[workout_rep(cardio,1)])])
+        ], MSDCardio).
+
+
 
 select_exercises(Rating5Exercises, AllExercises, Ret) :-
   random_subset(Rating5Exercises, 2, Subset),
