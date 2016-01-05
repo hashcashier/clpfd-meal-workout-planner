@@ -9,10 +9,8 @@ exercise_plan_month(NumOfDaysPerWeek, Type, Plan) :-
   exercise_plan_week(NumOfDaysPerWeek, Type, MuscleDay4, Ex4),
 
   random(1, 100101001, Seed),
-  labeling([random_variable(Seed),random_value(Seed)], MuscleDay1),
-  labeling([random_variable(Seed),random_value(Seed)], MuscleDay2),
-  labeling([random_variable(Seed),random_value(Seed)], MuscleDay3),
-  labeling([random_variable(Seed),random_value(Seed)], MuscleDay4),
+  flatten([MuscleDay1, MuscleDay2, MuscleDay3, MuscleDay4], ToLabel),
+  labeling([random_variable(Seed),random_value(Seed)], ToLabel),
 
   repetition_strategy(Strategies),
   nth0(0, Strategies, Rep1),
