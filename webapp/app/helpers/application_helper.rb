@@ -10,7 +10,7 @@ module ApplicationHelper
 
     full_query = [query, writelns].join(",").chomp ","
 
-    `cd #{SCRIPT_DIR} && #{PROLOG_COMMAND} -s #{consult_script} -g '#{full_query}' -t 'halt'`
+    `cd #{SCRIPT_DIR} && timeout -sKILL 300s #{PROLOG_COMMAND} -s #{consult_script} -g '#{full_query}' -t 'halt'`
   end
 
 end
