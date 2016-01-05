@@ -37,7 +37,7 @@ random_meals(Protein, Fat, Carbs, Calories, MealsPerDay, N, Plans):-
 
 random_meal(Protein, Fat, Carbs, Calories, MealsPerDay, DailyPlan):-
 	random(1, 100101001, RandomizationSeed),
-	writeln(RandomizationSeed),
+	%writeln(RandomizationSeed),
 	once(today(Protein, Fat, Carbs, Calories, MealsPerDay, RandomizationSeed, DailyPlan)).
 
 % Plan/3 for Weeks.
