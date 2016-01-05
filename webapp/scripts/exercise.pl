@@ -1,11 +1,14 @@
 :- use_module(library(clpfd)).
 :- use_module(library(lists)).
+:- use_module(library(random)).
 
-exercise_plan_month(NumOfDaysPerWeek, Type, Seed, Plan) :-
+exercise_plan_month(NumOfDaysPerWeek, Type, Plan) :-
   exercise_plan_week(NumOfDaysPerWeek, Type, MuscleDay1, Ex1),
   exercise_plan_week(NumOfDaysPerWeek, Type, MuscleDay2, Ex2),
   exercise_plan_week(NumOfDaysPerWeek, Type, MuscleDay3, Ex3),
   exercise_plan_week(NumOfDaysPerWeek, Type, MuscleDay4, Ex4),
+
+  random(1, 100101001, Seed),
   labeling([random_variable(Seed),random_value(Seed)], MuscleDay1),
   labeling([random_variable(Seed),random_value(Seed)], MuscleDay2),
   labeling([random_variable(Seed),random_value(Seed)], MuscleDay3),
