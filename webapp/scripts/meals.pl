@@ -1,14 +1,15 @@
 :- use_module(library(clpfd)).
 :- use_module(library(lists)).
 :- use_module(library(apply)).
+:- use_module(library(random)).
 :- consult(nutrition_data).
 
 % Plan/7 for a month
-plan(Goal, MealsPerDay, Weight, FatPerc, ActivityVariable, RandomizationSeed, Schedule):-
-	plan(Goal, MealsPerDay, Weight, FatPerc, ActivityVariable, 4, RandomizationSeed, Schedule).
+plan(Goal, MealsPerDay, Weight, FatPerc, ActivityVariable, Schedule):-
+	plan(Goal, MealsPerDay, Weight, FatPerc, ActivityVariable, 4, Schedule).
 
 % Plan/8 for Weeks.
-plan(Goal, MealsPerDay, Weight, FatPerc, ActivityVariable, Weeks, RandomizationSeed, Schedule):-
+plan(Goal, MealsPerDay, Weight, FatPerc, ActivityVariable, Weeks, Schedule):-
 	MealsPerDay > 2,
 	MealsPerDay < 6,
 	LBM is Weight*(100 - FatPerc) / 100,
@@ -24,9 +25,20 @@ plan(Goal, MealsPerDay, Weight, FatPerc, ActivityVariable, Weeks, RandomizationS
 	%write("Carbs: "), writeln(Carbs),
 	%write("Calories: "), writeln(Calories),
 	% Generate Daily Plans And Distribute
-	findnsols(16, DailyPlan, today(Protein, Fat, Carbs, Calories, MealsPerDay, RandomizationSeed, DailyPlan), DailyPlans),
+	random_meals(Protein, Fat, Carbs, Calories, MealsPerDay, 16, DailyPlans),
 	% Plan/3 for Weeks
 	plan(DailyPlans, Weeks, Schedule).
+
+random_meals(Protein, Fat, Carbs, Calories, MealsPerDay, N, Plans):-
+	%findnsols(16, DailyPlan, random_meal(Protein, Fat, Carbs, Calories, MealsPerDay, DailyPlan), DailyPlans),
+	length(Plans, N),
+	maplist(random_meal(Protein, Fat, Carbs, Calories, MealsPerDay), Plans).
+
+
+random_meal(Protein, Fat, Carbs, Calories, MealsPerDay, DailyPlan):-
+	random(1, 100101001, RandomizationSeed),
+	writeln(RandomizationSeed),
+	once(today(Protein, Fat, Carbs, Calories, MealsPerDay, RandomizationSeed, DailyPlan)).
 
 % Plan/3 for Weeks.
 plan(Repertoire, Weeks, Schedule):-
