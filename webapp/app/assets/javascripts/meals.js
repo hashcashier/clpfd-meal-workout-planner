@@ -87,7 +87,7 @@ function renderMealDay(data){
     var newMuscle = table.append($("<tr><td align='center' colspan='2'> Meal " + (i+1) + "</td></tr>"));
     for(var j=0; j<data[i].items.length;j++){
       var newMeal = $("<tr></tr>");
-      newMeal.append($("<td class='col-md-6' align='center' >" + data[i].items[j].units +"x</td>"));
+      newMeal.append($("<td class='col-md-6' align='center' ><div class='col-md-2 col-md-offset-5' ><input class='form-control' style='text-align:center;' type='text' value='" + data[i].items[j].units +"' /></div></td>"));
       newMeal.append($("<td align='center' >" + data[i].items[j].item +"</td>"));
       table.append(newMeal);
     }
